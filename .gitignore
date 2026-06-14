@@ -1,0 +1,22 @@
+# STM32CubeIDE
+Debug/
+.settings/
+*.elf
+*.hex
+*.bin
+*.list
+*.map
+
+# IDE
+.vscode/
+.idea/
+*.ioc.bak
+*.mxproject
+
+# OS
+Thumbs.db
+Desktop.ini
+
+# Temp
+*.tmp
+*.log

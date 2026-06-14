@@ -17,6 +17,9 @@ Debug/
 Thumbs.db
 Desktop.ini
 
+# LVGL demos (large binary assets)
+lvgl/demos/
+
 # Temp
 *.tmp
 *.log

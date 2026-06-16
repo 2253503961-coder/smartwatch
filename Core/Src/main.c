@@ -89,6 +89,8 @@ osMutexId_t Lvgl_MutexHandle;
 const osMutexAttr_t Lvgl_Mutex_attributes = {
   .name = "Lvgl_Mutex"
 };
+lv_obj_t * scr_home;
+lv_obj_t * scr_sec;
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -101,6 +103,7 @@ static void MX_SPI1_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_RTC_Init(void);
+void gesture_handler(lv_event_t * e);
 void StartDefaultTask(void *argument);
 void StarthomeTask(void *argument);
 void StartTaskLvgl(void *argument);
@@ -112,7 +115,33 @@ void Callback01(void *argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+void gesture_handler(lv_event_t * e)
+{
+  lv_obj_t * screen = lv_event_get_current_target(e);
+  lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_get_act());
+  switch(dir) {
+    case LV_DIR_LEFT:
+    	if(screen==scr_home){
+    		lv_scr_load(scr_sec);
+    	}
+    	if(screen==scr_sec){
+    		lv_scr_load(scr_home);
+    	}
+    	break;
+    case LV_DIR_RIGHT:
+    	if(screen==scr_home){
+    		lv_scr_load(scr_sec);
+    	}
+    	if(screen==scr_sec){
+    		lv_scr_load(scr_home);
+    	}
+    	break;
+    case LV_DIR_TOP:
+    	break;
+    case LV_DIR_BOTTOM:
+    	break;
+  }
+}
 /* USER CODE END 0 */
 
 /**
@@ -144,7 +173,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  /* MX_I2C1_Init() disabled: PB6/PB7 used by CST816D software I2C driver */
+  MX_I2C1_Init();
   MX_SPI1_Init();
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
@@ -210,6 +239,22 @@ int main(void)
   /* Start scheduler */
   osKernelStart();
 
+  scr_home = lv_scr_act();
+    lv_obj_t * clock_label = lv_label_create(scr_home);
+    lv_obj_set_style_text_font(clock_label, &lv_font_montserrat_24, 0);
+    lv_label_set_text(clock_label, "INIT...");
+    lv_obj_align(clock_label, LV_ALIGN_CENTER, 0, 0);
+
+    scr_sec = lv_obj_create(NULL);
+    lv_obj_t *lab_sec = lv_label_create(scr_sec);
+    lv_label_set_text(lab_sec, "Second\nSecond PAGE");
+    lv_obj_center(lab_sec);
+    /*lv_obj_clear_flag(scr_home,LV_OBJ_FLAG_GESTURE_BUBBLE);
+    lv_obj_add_flag(scr_home,LV_OBJ_FLAG_CLICKABLE);*/
+    lv_obj_add_event_cb(scr_home, gesture_handler, LV_EVENT_GESTURE, NULL);
+    lv_obj_add_event_cb(scr_sec, gesture_handler, LV_EVENT_GESTURE, NULL);
+    //lv_scr_load(scr_sec);
+
   /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
@@ -217,6 +262,17 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
+	  RTC_TimeTypeDef sTime;
+	    RTC_DateTypeDef sDate;
+
+
+	  HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+	   HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+	   char buf[32];
+	   sprintf(buf, "%02d:%02d:%02d", sTime.Hours, sTime.Minutes, sTime.Seconds);
+	  lv_label_set_text(clock_label, buf);
+	  lv_task_handler();
+	  osDelay(10);
 
     /* USER CODE BEGIN 3 */
   }
@@ -239,17 +295,12 @@ void SystemClock_Config(void)
 
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
-  * HSE 25MHz -> PLL -> SYSCLK 84MHz, APB1 42MHz, APB2 84MHz
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_LSI;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_LSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.LSIState = RCC_LSI_ON;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 25;
-  RCC_OscInitStruct.PLL.PLLN = 336;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV4;
-  RCC_OscInitStruct.PLL.PLLQ = 7;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -259,12 +310,12 @@ void SystemClock_Config(void)
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
   {
     Error_Handler();
   }
@@ -464,8 +515,8 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(Led0_GPIO_Port, Led0_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_4
-                          |GPIO_PIN_8, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_10|GPIO_PIN_4
+                          |GPIO_PIN_8|GPIO_PIN_9, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : Led0_Pin */
   GPIO_InitStruct.Pin = Led0_Pin;
@@ -474,10 +525,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(Led0_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PB1 PB2 PB4 PB8
-                           (PB9/PB10 managed by CST816D driver) */
-  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_4
-                          |GPIO_PIN_8;
+  /*Configure GPIO pins : PB1 PB2 PB10 PB4
+                           PB8 PB9 */
+  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_10|GPIO_PIN_4
+                          |GPIO_PIN_8|GPIO_PIN_9;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -521,11 +572,20 @@ void StarthomeTask(void *argument)
 {
   /* USER CODE BEGIN StarthomeTask */
   // 创建表盘界面
-  lv_obj_t * scr_home = lv_scr_act();
+  scr_home = lv_scr_act();
   lv_obj_t * clock_label = lv_label_create(scr_home);
   lv_obj_set_style_text_font(clock_label, &lv_font_montserrat_24, 0);
   lv_label_set_text(clock_label, "INIT...");
   lv_obj_align(clock_label, LV_ALIGN_CENTER, 0, 0);
+
+  scr_sec = lv_obj_create(NULL);
+  lv_obj_t *lab_sec = lv_label_create(scr_sec);
+  lv_label_set_text(lab_sec, "Second\nSecond PAGE");
+  lv_obj_center(lab_sec);
+  /*lv_obj_clear_flag(scr_home,LV_OBJ_FLAG_GESTURE_BUBBLE);
+  lv_obj_add_flag(scr_home,LV_OBJ_FLAG_CLICKABLE);*/
+  lv_obj_add_event_cb(scr_home, gesture_handler, LV_EVENT_GESTURE, NULL);
+  lv_obj_add_event_cb(scr_sec, gesture_handler, LV_EVENT_GESTURE, NULL);
 
   char time_buf[32];
 
@@ -555,7 +615,7 @@ void StartTaskLvgl(void *argument)
   {
     // LVGL 线程安全处理
     osMutexAcquire(Lvgl_MutexHandle, osWaitForever);
-    lv_timer_handler();
+    lv_task_handler();
     osMutexRelease(Lvgl_MutexHandle);
     osDelay(10);
   }
@@ -581,6 +641,8 @@ void Callback01(void *argument)
   osMessageQueuePut(myQueue01Handle, buf, 0, osWaitForever);
   /* USER CODE END Callback01 */
 }
+
+
 
 /**
   * @brief  This function is executed in case of error occurrence.

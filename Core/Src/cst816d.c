@@ -44,9 +44,9 @@ static void CST816D_I2C_Start(void)
     CST816D_SDA_OUT();
     CST816D_SDA_H();
     CST816D_SCL_H();
-    HAL_Delay(1);
+    osDelay(1);
     CST816D_SDA_L();
-    HAL_Delay(1);
+    osDelay(1);
     CST816D_SCL_L();
 }
 
@@ -55,11 +55,11 @@ static void CST816D_I2C_Stop(void)
     CST816D_SDA_OUT();
     CST816D_SCL_L();
     CST816D_SDA_L();
-    HAL_Delay(1);
+    osDelay(1);
     CST816D_SCL_H();
-    HAL_Delay(1);
+    osDelay(1);
     CST816D_SDA_H();
-    HAL_Delay(1);
+    osDelay(1);
 }
 
 static void CST816D_I2C_SendByte(uint8_t data)
@@ -73,11 +73,11 @@ static void CST816D_I2C_SendByte(uint8_t data)
         else
             CST816D_SDA_L();
         data <<= 1;
-        HAL_Delay(1);
+        osDelay(1);
         CST816D_SCL_H();
-        HAL_Delay(1);
+        osDelay(1);
         CST816D_SCL_L();
-        HAL_Delay(1);
+        osDelay(1);
     }
 }
 
@@ -88,9 +88,9 @@ static uint8_t CST816D_I2C_ReadByte(void)
     for(uint8_t i = 0; i < 8; i++)
     {
         CST816D_SCL_L();
-        HAL_Delay(1);
+        osDelay(1);
         CST816D_SCL_H();
-        HAL_Delay(1);
+        osDelay(1);
         data <<= 1;
         if(CST816D_SDA_READ())
             data |= 0x01;
@@ -104,12 +104,12 @@ static uint8_t CST816D_I2C_WaitAck(void)
     uint8_t ack;
     CST816D_SDA_IN();
     CST816D_SCL_L();
-    HAL_Delay(1);
+    osDelay(1);
     CST816D_SCL_H();
-    HAL_Delay(1);
+    osDelay(1);
     ack = CST816D_SDA_READ() ? 1 : 0;
     CST816D_SCL_L();
-    HAL_Delay(1);
+    osDelay(1);
     return ack;
 }
 
@@ -118,9 +118,9 @@ static void CST816D_I2C_SendAck(void)
     CST816D_SDA_OUT();
     CST816D_SDA_L();
     CST816D_SCL_L();
-    HAL_Delay(1);
+    osDelay(1);
     CST816D_SCL_H();
-    HAL_Delay(1);
+    osDelay(1);
     CST816D_SCL_L();
 }
 
@@ -129,9 +129,9 @@ static void CST816D_I2C_SendNack(void)
     CST816D_SDA_OUT();
     CST816D_SDA_H();
     CST816D_SCL_L();
-    HAL_Delay(1);
+    osDelay(1);
     CST816D_SCL_H();
-    HAL_Delay(1);
+    osDelay(1);
     CST816D_SCL_L();
 }
 
@@ -218,12 +218,12 @@ uint8_t CST816D_Init(void)
 {
     CST816D_GPIO_Init();
 
-    HAL_Delay(100);
+    osDelay(100);
 
     CST816D_RST_L();
-    HAL_Delay(50);
+    osDelay(50);
     CST816D_RST_H();
-    HAL_Delay(100);
+    osDelay(100);
 
     uint8_t chip_id = CST816D_ReadReg(0xA7);
     if(chip_id == 0x00 || chip_id == 0xFF)
@@ -232,7 +232,7 @@ uint8_t CST816D_Init(void)
     }
 
     CST816D_WriteReg(0xFE, 0x00);
-    HAL_Delay(5);
+    osDelay(5);
 
     CST816D_WriteReg(0xFA, 0x20);
     CST816D_WriteReg(0xFB, 0x00);

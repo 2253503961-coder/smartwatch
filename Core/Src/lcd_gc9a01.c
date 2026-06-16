@@ -44,9 +44,9 @@ void LCD_Init(void)
     LCD_GPIO_Init();
 
     LCD_RST_L();
-    HAL_Delay(100);
+    osDelay(100);
     LCD_RST_H();
-    HAL_Delay(100);
+    osDelay(100);
 
     LCD_WriteReg(0xEF);
     LCD_WriteReg(0xEB);
@@ -277,9 +277,9 @@ void LCD_Init(void)
     LCD_WriteReg(0x21);
 
     LCD_WriteReg(0x11);
-    HAL_Delay(120);
+    osDelay(120);
     LCD_WriteReg(0x29);
-    HAL_Delay(20);
+    osDelay(20);
 }
 
 void LCD_Address_Set(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
